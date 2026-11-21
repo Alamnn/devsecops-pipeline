@@ -1,12 +1,23 @@
 import hashlib
+import os
 import sqlite3
 
 import yaml
-from flask import Flask, request
+from flask import Flask, render_template_string, request
 
 app = Flask(__name__)
 
-INTERNAL_API_KEY = "8f3a91c2d7e44b6a9c1e5d0b72f84a36"
+INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "")
+
+
+@app.after_request
+def security_headers(resp):
+    resp.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    resp.headers["X-Content-Type-Options"] = "nosniff"
+    resp.headers["X-Frame-Options"] = "DENY"
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["Server"] = "app"
+    return resp
 
 
 def db():
@@ -19,24 +30,24 @@ def db():
 @app.route("/user")
 def user():
     name = request.args.get("name", "")
-    rows = db().execute("select id, name from users where name = '%s'" % name).fetchall()
+    rows = db().execute("select id, name from users where name = ?", (name,)).fetchall()
     return str(rows)
 
 
 @app.route("/hello")
 def hello():
-    return "<h1>Hello %s</h1>" % request.args.get("name", "")
+    return render_template_string("<h1>Hello {{ name }}</h1>", name=request.args.get("name", ""))
 
 
 @app.route("/config", methods=["POST"])
 def config():
-    return str(yaml.load(request.data, Loader=yaml.Loader))
+    return str(yaml.safe_load(request.data))
 
 
 @app.route("/hash")
 def hash_pw():
-    return hashlib.md5(request.args.get("pw", "").encode()).hexdigest()
+    return hashlib.sha256(request.args.get("pw", "").encode()).hexdigest()
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", debug=True)
+    app.run(host=os.environ.get("HOST", "127.0.0.1"), port=int(os.environ.get("PORT", "5000")), debug=False)

@@ -1,0 +1,4 @@
+ Dockerfile       |  1 +
+ app.py           | 24 ++++++++++++++++++------
+ requirements.txt |  9 +++++----
+ 3 files changed, 24 insertions(+), 10 deletions(-)

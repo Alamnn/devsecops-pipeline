@@ -1,0 +1,76 @@
+<style>body{background:#1e1e1e;margin:0;padding:24px;width:1150px}.w{background:#0d1117;color:#c9d1d9;font:13px/1.45 Menlo,monospace;padding:18px;border-radius:8px;white-space:pre-wrap}.h{color:#58a6ff}.a{color:#3fb950}.d{color:#f85149}</style><div class=w><span class=h>$ git diff before-fix fix/security-patches -- app.py requirements.txt</span>
+<span class=>diff --git a/app.py b/app.py</span>
+<span class=>index d24d69c..5bc0a5a 100644</span>
+<span class=>--- a/app.py</span>
+<span class=>+++ b/app.py</span>
+<span class=>@@ -1,12 +1,23 @@</span>
+<span class=> import hashlib</span>
+<span class=a>+import os</span>
+<span class=> import sqlite3</span>
+<span class=> </span>
+<span class=> import yaml</span>
+<span class=d>-from flask import Flask, request</span>
+<span class=a>+from flask import Flask, render_template_string, request</span>
+<span class=> </span>
+<span class=> app = Flask(__name__)</span>
+<span class=> </span>
+<span class=d>-INTERNAL_API_KEY = &quot;REDACTED&quot;</span>
+<span class=a>+INTERNAL_API_KEY = os.environ.get(&quot;INTERNAL_API_KEY&quot;, &quot;&quot;)</span>
+<span class=a>+</span>
+<span class=a>+</span>
+<span class=a>+@app.after_request</span>
+<span class=a>+def security_headers(resp):</span>
+<span class=a>+    resp.headers[&quot;Content-Security-Policy&quot;] = &quot;default-src &#x27;none&#x27;; frame-ancestors &#x27;none&#x27;&quot;</span>
+<span class=a>+    resp.headers[&quot;X-Content-Type-Options&quot;] = &quot;nosniff&quot;</span>
+<span class=a>+    resp.headers[&quot;X-Frame-Options&quot;] = &quot;DENY&quot;</span>
+<span class=a>+    resp.headers[&quot;Referrer-Policy&quot;] = &quot;no-referrer&quot;</span>
+<span class=a>+    resp.headers[&quot;Server&quot;] = &quot;app&quot;</span>
+<span class=a>+    return resp</span>
+<span class=> </span>
+<span class=> </span>
+<span class=> def db():</span>
+<span class=>@@ -19,24 +30,24 @@ def db():</span>
+<span class=> @app.route(&quot;/user&quot;)</span>
+<span class=> def user():</span>
+<span class=>     name = request.args.get(&quot;name&quot;, &quot;&quot;)</span>
+<span class=d>-    rows = db().execute(&quot;select id, name from users where name = &#x27;%s&#x27;&quot; % name).fetchall()</span>
+<span class=a>+    rows = db().execute(&quot;select id, name from users where name = ?&quot;, (name,)).fetchall()</span>
+<span class=>     return str(rows)</span>
+<span class=> </span>
+<span class=> </span>
+<span class=> @app.route(&quot;/hello&quot;)</span>
+<span class=> def hello():</span>
+<span class=d>-    return &quot;&lt;h1&gt;Hello %s&lt;/h1&gt;&quot; % request.args.get(&quot;name&quot;, &quot;&quot;)</span>
+<span class=a>+    return render_template_string(&quot;&lt;h1&gt;Hello {{ name }}&lt;/h1&gt;&quot;, name=request.args.get(&quot;name&quot;, &quot;&quot;))</span>
+<span class=> </span>
+<span class=> </span>
+<span class=> @app.route(&quot;/config&quot;, methods=[&quot;POST&quot;])</span>
+<span class=> def config():</span>
+<span class=d>-    return str(yaml.load(request.data, Loader=yaml.Loader))</span>
+<span class=a>+    return str(yaml.safe_load(request.data))</span>
+<span class=> </span>
+<span class=> </span>
+<span class=> @app.route(&quot;/hash&quot;)</span>
+<span class=> def hash_pw():</span>
+<span class=d>-    return hashlib.md5(request.args.get(&quot;pw&quot;, &quot;&quot;).encode()).hexdigest()</span>
+<span class=a>+    return hashlib.sha256(request.args.get(&quot;pw&quot;, &quot;&quot;).encode()).hexdigest()</span>
+<span class=> </span>
+<span class=> </span>
+<span class=> if __name__ == &quot;__main__&quot;:</span>
+<span class=d>-    app.run(host=&quot;0.0.0.0&quot;, debug=True)</span>
+<span class=a>+    app.run(host=os.environ.get(&quot;HOST&quot;, &quot;127.0.0.1&quot;), port=int(os.environ.get(&quot;PORT&quot;, &quot;5000&quot;)), debug=False)</span>
+<span class=>diff --git a/requirements.txt b/requirements.txt</span>
+<span class=>index 0d0f6d3..fabcbaa 100644</span>
+<span class=>--- a/requirements.txt</span>
+<span class=>+++ b/requirements.txt</span>
+<span class=>@@ -1,4 +1,5 @@</span>
+<span class=d>-flask==1.0</span>
+<span class=d>-jinja2==2.10</span>
+<span class=d>-werkzeug==0.15.0</span>
+<span class=d>-pyyaml==5.3</span>
+<span class=a>+flask==3.1.3</span>
+<span class=a>+werkzeug==3.1.9</span>
+<span class=a>+jinja2==3.1.6</span>
+<span class=a>+pyyaml==6.0.2</span>
+<span class=a>+markupsafe==3.0.2</span>
+</div>
