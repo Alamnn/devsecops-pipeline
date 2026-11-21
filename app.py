@@ -5,6 +5,13 @@ import sqlite3
 import yaml
 from flask import Flask, render_template_string, request
 
+try:
+    import gunicorn
+
+    gunicorn.SERVER = "app"
+except ImportError:
+    pass
+
 app = Flask(__name__)
 
 INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "")
@@ -12,7 +19,12 @@ INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "")
 
 @app.after_request
 def security_headers(resp):
-    resp.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    resp.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; form-action 'none'"
+    resp.headers["Cache-Control"] = "no-store"
+    resp.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
+    resp.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
+    resp.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    resp.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     resp.headers["X-Content-Type-Options"] = "nosniff"
     resp.headers["X-Frame-Options"] = "DENY"
     resp.headers["Referrer-Policy"] = "no-referrer"
