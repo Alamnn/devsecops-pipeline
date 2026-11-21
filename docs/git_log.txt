@@ -1,0 +1,2 @@
+61220ec Fix SAST/SCA findings: parameterised SQL, escaping, safe_load, sha256, env secret, headers, upgraded deps
+7784bc6 Add vulnerable demo app and security-gates pipeline
