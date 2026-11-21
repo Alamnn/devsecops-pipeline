@@ -19,7 +19,7 @@ INTERNAL_API_KEY = os.environ.get("INTERNAL_API_KEY", "")
 
 @app.after_request
 def security_headers(resp):
-    resp.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; form-action 'none'"
+    resp.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; form-action 'none'; base-uri 'none'"
     resp.headers["Cache-Control"] = "no-store"
     resp.headers["Permissions-Policy"] = "geolocation=(), camera=(), microphone=()"
     resp.headers["Cross-Origin-Embedder-Policy"] = "require-corp"
@@ -44,6 +44,11 @@ def user():
     name = request.args.get("name", "")
     rows = db().execute("select id, name from users where name = ?", (name,)).fetchall()
     return str(rows)
+
+
+@app.route("/")
+def index():
+    return "<h1>Demo App</h1>"
 
 
 @app.route("/hello")
