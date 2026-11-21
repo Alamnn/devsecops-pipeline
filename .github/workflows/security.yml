@@ -1,0 +1,71 @@
+name: security-gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  sast:
+    name: SAST (Semgrep + Bandit)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install semgrep bandit
+      - name: Semgrep (fails on findings)
+        run: semgrep scan --config p/python --config p/owasp-top-ten --error --json-output=semgrep.json app.py
+      - name: Bandit (fails on High severity)
+        run: bandit -r app.py -lll -f json -o bandit.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: sast-reports, path: "semgrep.json\nbandit.json" }
+
+  sca:
+    name: SCA + container (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trivy dependency scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+          format: table
+
+  secrets:
+    name: Secret scanning (Gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  dast:
+    name: DAST (OWASP ZAP baseline)
+    runs-on: ubuntu-latest
+    needs: [sast, sca, secrets]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and start app
+        run: |
+          docker build -t target-app .
+          docker run -d --name target -p 5000:5000 target-app
+          sleep 8
+      - name: ZAP baseline scan (fails on warnings/failures per rules.tsv)
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: http://localhost:5000/hello?name=test
+          rules_file_name: .zap/rules.tsv
+          fail_action: true
+          allow_issue_writing: false
