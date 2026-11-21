@@ -35,6 +35,10 @@ Bandit: 5 findings (2 High) -> 0. pip-audit: ~30 advisories -> 0.
 ![after](docs/screenshots/02_after.png)
 ![diff](docs/screenshots/03_diff.png)
 
+## Live GitHub Actions Pipeline (Before vs After)
+![ci-failed](docs/screenshots/04_ci_failed_main.png)
+![ci-passed](docs/screenshots/05_ci_passed_pr.png)
+
 Reports: [before_bandit.txt](docs/before_bandit.txt), [after_bandit.txt](docs/after_bandit.txt), [before_sca.txt](docs/before_sca.txt), [after_sca.txt](docs/after_sca.txt).
 
 ## Reproduce
